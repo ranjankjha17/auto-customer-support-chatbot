@@ -42,5 +42,5 @@ A modern customer support chatbot with AI-powered responses, query storage, and 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/auto-customer-support-chatbot.git
+   git clone https://github.com/ranjankjha17/auto-customer-support-chatbot.git
    cd auto-customer-support-chatbot
