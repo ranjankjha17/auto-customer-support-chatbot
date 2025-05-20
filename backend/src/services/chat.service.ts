@@ -1,30 +1,39 @@
-import { llmService } from './llm.service';
-import { n8nService } from './n8n.service';
-import { Query } from '../models/query.model';
+import { IQuery } from '../models/query.model';
+import llmService from './llm.service';
+import n8nService from './n8n.service';
 
-export const chatService = {
-  async getAIResponse(message: string): Promise<string> {
-    try {
-      // Check if this is an urgent query
-      const isUrgent = this.checkUrgency(message);
-      
-      if (isUrgent) {
-        await n8nService.triggerUrgentAlert(message);
-      }
-      
-      // Get response from LLM
-      const response = await llmService.generateResponse(message);
-      
-      return response;
-    } catch (error) {
-      console.error('Error in chat service:', error);
-      return "I'm sorry, I couldn't process your request. Please try again later.";
+export default {
+  async processQuery(userQuery: string): Promise<{ response: string; query: IQuery }> {
+    // Create query record
+    const query = new (require('../models/query.model').default)({
+      content: userQuery,
+      urgency: this.determineUrgency(userQuery)
+    });
+
+    // Get AI response
+    const response = await llmService.generateResponse(userQuery);
+    query.response = response;
+
+    // Save to database
+    await query.save();
+
+    // Trigger automations
+    if (query.urgency === 'high') {
+      await n8nService.triggerAlert(query);
     }
+    await n8nService.storeQuery(query);
+
+    return { response, query };
   },
-  
-  checkUrgency(message: string): boolean {
-    const urgentKeywords = ['urgent', 'emergency', 'help', 'immediately', 'now'];
-    return urgentKeywords.some(keyword => 
-      message.toLowerCase().includes(keyword)
+
+  determineUrgency(content: string): 'low' | 'medium' | 'high' {
+    const urgentKeywords = ['urgent', 'emergency', 'help now', 'immediately'];
+    const mediumKeywords = ['question', 'help', 'support'];
+    
+    const lowerContent = content.toLowerCase();
+    
+    if (urgentKeywords.some(kw => lowerContent.includes(kw))) return 'high';
+    if (mediumKeywords.some(kw => lowerContent.includes(kw))) return 'medium';
+    return 'low';
   }
 };

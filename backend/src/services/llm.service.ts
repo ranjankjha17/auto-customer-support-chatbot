@@ -1,23 +1,28 @@
 import OpenAI from 'openai';
-import { config } from '../config';
+import config from '../config';
 
 const openai = new OpenAI({
-  apiKey: config.openai.apiKey,
+  apiKey: config.openai.apiKey
 });
 
-export const llmService = {
-  async generateResponse(message: string): Promise<string> {
-    const completion = await openai.chat.completions.create({
-      messages: [
-        { 
-          role: "system", 
-          content: "You are a helpful customer support assistant. Be polite, concise and helpful." 
-        },
-        { role: "user", content: message }
-      ],
-      model: "gpt-3.5-turbo",
-    });
+export default {
+  async generateResponse(prompt: string): Promise<string> {
+    try {
+      const completion = await openai.chat.completions.create({
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a helpful customer support assistant. Provide concise, accurate answers." 
+          },
+          { role: "user", content: prompt }
+        ],
+        model: config.openai.model,
+      });
 
-    return completion.choices[0]?.message?.content || "I don't have a response for that.";
+      return completion.choices[0]?.message?.content || "I couldn't generate a response.";
+    } catch (error) {
+      console.error('OpenAI Error:', error);
+      throw new Error('Failed to generate AI response');
+    }
   }
 };

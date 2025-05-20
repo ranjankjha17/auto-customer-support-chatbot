@@ -1,27 +1,29 @@
 import axios from 'axios';
-import { config } from '../config';
+import config from '../config';
+import { IQuery } from '../models/query.model';
 
-export const n8nService = {
-  async triggerUrgentAlert(message: string): Promise<void> {
+export default {
+  async triggerAlert(query: IQuery): Promise<void> {
     try {
       await axios.post(config.n8n.webhookUrl, {
-        message,
-        timestamp: new Date().toISOString(),
-        priority: 'high'
+        query: query.content,
+        timestamp: query.timestamp,
+        urgency: query.urgency
       });
     } catch (error) {
-      console.error('Failed to trigger n8n alert:', error);
+      console.error('n8n Error:', error);
+      throw new Error('Failed to trigger n8n alert');
     }
   },
-  
-  async storeQuery(query: string): Promise<void> {
+
+  async storeQuery(query: IQuery): Promise<void> {
     try {
-      await axios.post(`${config.n8n.baseUrl}/query-storage`, {
-        query,
-        timestamp: new Date().toISOString()
+      await axios.post(`${config.n8n.webhookUrl}/store`, {
+        ...query.toObject()
       });
     } catch (error) {
-      console.error('Failed to store query in n8n:', error);
+      console.error('n8n Storage Error:', error);
+      throw new Error('Failed to store query in n8n');
     }
   }
 };
