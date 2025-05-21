@@ -1,6 +1,7 @@
 import { ChatWindow } from '@/components/chat/chat-window'
-import { getConversation } from '@/lib/db/chat-queries'
+import { getConversation } from '@/lib/mongo/chat-queries'
 import { notFound } from 'next/navigation'
+import { ObjectId } from 'mongodb'
 
 export default async function DashboardPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function DashboardPage({
 }) {
   const conversationId = searchParams.id as string | undefined
   const conversation = conversationId 
-    ? await getConversation(conversationId)
+    ? await getConversation(new ObjectId(conversationId))
     : null
 
   if (conversationId && !conversation) {
@@ -19,7 +20,7 @@ export default async function DashboardPage({
   return (
     <ChatWindow 
       initialMessages={conversation?.messages || []}
-      conversationId={conversation?.id}
+      conversationId={conversation?._id.toString()}
     />
   )
 }

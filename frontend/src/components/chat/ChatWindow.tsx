@@ -19,10 +19,10 @@ export function ChatWindow({
   const [messages, setMessages] = useUIState()
   const { input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat',
-    body: { conversationId },
+    body: conversationId ? { conversationId } : undefined,
     initialMessages,
     onFinish: () => {
-      // Refresh conversation list
+      // Refresh conversation list if needed
     }
   })
 

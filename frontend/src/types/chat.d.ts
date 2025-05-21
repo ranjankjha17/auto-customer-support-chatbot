@@ -1,13 +1,15 @@
-import { type InferSelectModel } from 'drizzle-orm'
-import { type messages } from '@/lib/db/schema'
+import { ObjectId } from 'mongodb'
 
-export type Message = InferSelectModel<typeof messages>
-
-export interface Chat extends Record<string, any> {
-  id: string
-  title: string
+export interface Message {
+  _id?: ObjectId
+  content: string
+  role: 'user' | 'assistant'
   createdAt: Date
-  userId: string
-  path: string
+}
+
+export interface Conversation {
+  _id: ObjectId
+  userId: ObjectId
+  createdAt: Date
   messages: Message[]
 }
