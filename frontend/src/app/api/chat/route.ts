@@ -1,35 +1,55 @@
-import { NextResponse } from 'next/server';
+import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
-export const runtime = 'edge';
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+export const runtime = 'edge'
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const { messages, conversationId } = await req.json()
     
-    // In a real app, you'd call your backend API here
-    // For demo, we'll simulate a response
-    const response = await fetch('http://localhost:3001/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get response from backend');
+    // Verify user session
+    const { user } = await validateRequest()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    return new NextResponse(response.body, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    });
+    // Save user message to DB
+    await saveMessage({
+      conversationId,
+      content: messages[messages.length - 1].content,
+      role: 'user',
+      userId: user.id
+    })
+
+    // Create AI response
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-turbo',
+      messages,
+      stream: true,
+    })
+
+    const stream = OpenAIStream(response, {
+      onCompletion: async (completion) => {
+        await saveMessage({
+          conversationId,
+          content: completion,
+          role: 'assistant',
+          userId: user.id
+        })
+      }
+    })
+
+    return new StreamingTextResponse(stream)
   } catch (error) {
-    console.error(error);
+    console.error('[CHAT_ERROR]', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }
